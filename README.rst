@@ -15,7 +15,7 @@ Built-in tasks:
 * Rebuild of user indices in database.
 * Removal of old files.
 
-FBUPKEEP is designed to run on `Python`_ 3.6+, and uses FDB_ Firebird driver.
+FBUPKEEP is designed to run on Python 3.5+, and uses FDB_ Firebird driver.
 
 .. _Firebird: http://www.firebirdsql.org
 .. _FDB: https://github.com/FirebirdSQL/fdb
