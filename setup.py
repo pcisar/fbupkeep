@@ -22,7 +22,7 @@ with open(path.join(HERE, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='fbupkeep',
-    version='0.9',
+    version='1.0',
     description='Firebird Upkeep utility',
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/x-rst",
@@ -55,10 +55,10 @@ setup(
     keywords='Firebird database backup maintenance',
     packages=find_packages(),  # Required
     zip_safe=False,
-    install_requires=[],
+    install_requires=['fdb>=2.0'],
     python_requires='>=3.5, <4',
     test_suite='nose.collector',
-    data_files=[],
+    data_files=['fbupkeep.cfg'],
     namespace_packages=[],
     project_urls={
         'Source': 'https://github.com/pcisar/fbupkeep',

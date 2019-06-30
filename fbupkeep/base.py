@@ -44,7 +44,7 @@ import argparse
 import configparser
 from pkg_resources import iter_entry_points
 
-__version__ = '0.9'
+__version__ = '1.0'
 
 # Exceptions
 
