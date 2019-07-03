@@ -3,8 +3,8 @@
 FBUPKEEP - Firebird server & database maintenance utility
 #########################################################
 
-FBUPKEEP is a Python library that provides a task executor engine and a command-line tool to execute tasks. 
-Its primary purpose is to run maintenance tasks for `Firebird`_ ® servers and databases, but could be easily 
+FBUPKEEP is a Python library that provides a task executor engine and a command-line tool to execute tasks.
+Its primary purpose is to run maintenance tasks for `Firebird`_ ® servers and databases, but could be easily
 extended to run other tasks of various type.
 
 Built-in tasks:
@@ -17,6 +17,13 @@ Built-in tasks:
 * Removal of old files.
 
 FBUPKEEP is designed to run on Python 3.5+, and uses FDB_ Firebird driver.
+
+Installation
+------------
+
+From PyPI_::
+
+  pip install fbupkeep
 
 Content
 *******
@@ -42,3 +49,4 @@ Indices and tables
 .. _FDB: https://github.com/FirebirdSQL/fdb
 .. _IBPhoenix: http://www.ibphoenix.com
 .. _Python: http://python.org
+.. _PyPI: https://pypi.org/project/fbupkeep/

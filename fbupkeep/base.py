@@ -44,7 +44,7 @@ import argparse
 import configparser
 from pkg_resources import iter_entry_points
 
-__version__ = '1.0'
+__version__ = '1.0.1'
 
 # Exceptions
 
@@ -72,7 +72,7 @@ Attributes:
     :required:    True if option must have a value.
     :default:     Default value.
     :proposal:    Text with proposed configuration entry (if it's different from default).
-    :value:       Current optin value.
+    :value:       Current option value.
 """
     def __init__(self, name: str, datatype: Any, description: str, required: bool = False,
                  default: Any = None, proposal: Any = None):

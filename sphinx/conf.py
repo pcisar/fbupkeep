@@ -25,9 +25,9 @@ copyright = u'2019, IBPhoenix'
 author = u'Pavel Císař'
 
 # The short X.Y version
-version = u'1.0'
+version = u'1.0.1'
 # The full version, including alpha/beta/rc tags
-release = u'1.0'
+release = u'1.0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -138,7 +138,7 @@ html_theme_options = {
 
     # Global TOC depth for "site" navbar tab. (Default: 1)
     # Switching to -1 shows all levels.
-    'globaltoc_depth': 3,
+    'globaltoc_depth': 4,
 
     # Include hidden TOCs in Site navbar?
     #
@@ -159,8 +159,8 @@ html_theme_options = {
 
     # Location of link to source.
     # Options are "nav" (default), "footer" or anything else to exclude.
-    'source_link_position': "none",
-    #'source_link_position': "nav",
+    #'source_link_position': "none",
+    'source_link_position': "nav",
 
     # Bootswatch (http://bootswatch.com/) theme.
     #
@@ -264,7 +264,7 @@ epub_exclude_files = ['search.html']
 autoclass_content = "both"
 autodoc_member_order = "groupwise"
 autodoc_default_options = {
-#    'members': None,
+    #'members': None,
     'member-order': 'groupwise',
 #    'special-members': '__init__',
     'undoc-members': True,

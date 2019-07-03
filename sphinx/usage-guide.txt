@@ -8,34 +8,87 @@ Usage Guide
 Basics
 ======
 
-FBUpkeep is a Python library that provides a task executor engine and a command-line tool to execute tasks. 
-Its primary purpose is to run maintenance tasks for `Firebird`_ ® servers and databases, but could be easily 
+FBUpkeep is a Python library that provides a task executor engine and a command-line tool to execute tasks.
+Its primary purpose is to run maintenance tasks for `Firebird`_ ® servers and databases, but could be easily
 extended to run other tasks of various type.
 
-Tasks are simple Python classes inherited from :class:`~base.Task` and registered into `fbupkeep_tasks` `entry point 
+Tasks are simple Python classes inherited from :class:`~base.Task` and registered into `fbupkeep_tasks` `entry point
 group <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`_ (in `setup.py`).
 Tasks are parameterized by the configuration file (using standard :mod:`configparser` Python library module).
 
-Tasks are managed and executed by :class:`~base.TaskExecutor` which is parametrized using the configuration file and 
+Tasks are managed and executed by :class:`~base.TaskExecutor` which is parametrized using the configuration file and
 options that are typically provided as :class:`argparse.Namespace`.
 
-Module :mod:`fbupkeep.runner` provides `fbupkeep` command-line utility to work with task executor. 
+Module :mod:`fbupkeep.runner` provides `fbupkeep` command-line utility to work with task executor.
+
+Tasks are executed in named jobs (batch) that run one or more tasks in specified order on single
+taget (Firebird server or database). Each job could be configured to work with different target.
+
+The fbupkeep script
+===================
+
+The `fbupkeep` script is automatically created in the `python scripts` directory (it should be in your
+PATH by default) when you install the library, so you can use it directly.
+
+usage::
+
+  fbupkeep [-h] [--version] [--create-config FILENAME]
+                [--host HOST] [-u USER] [-p PASSWORD]
+                [-c CONFIG] [-o DIR] [--dry-run]
+                [-v] [-q] [-l {critical,fatal,error,warn,warning,info,debug,notset}]
+                [--log-only]
+                job_name
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --create-config FILENAME
+                        Create configuration file for job and exit (default:
+                        None)
+
+positional arguments:
+  :job_name:            Job name
+
+Firebird server/database connection arguments:
+  --host HOST           Server host (default: localhost)
+  -u USER, --user USER  User name (default: sysdba)
+  -p PASSWORD, --password PASSWORD
+                        User password (default: masterkey)
+
+run arguments:
+  -c CONFIG, --config CONFIG
+                        Configuration file (default: fbupkeep.cfg)
+  -o DIR, --output-dir DIR
+                        Force directory for log files and other output
+                        (default: ${here}/${job_name})
+  --dry-run             Prepare execution but do not run tasks (default:
+                        False)
+
+output arguments:
+  -v, --verbose         Verbose output (default: False)
+  -q, --quiet           No screen output (default: False)
+  -l {critical,fatal,error,warn,warning,info,debug,notset}, --log-level {critical,fatal,error,warn,warning,info,debug,notset}
+                        Logging level (default: WARNING)
+  --log-only            Suppress all screen output including error messages
+                        (default: False)
+
 
 Configuration file
 ==================
 
-By default, `fbupkeep` uses the :file:`fbupkeep.cfg` configuration file from current working directory, 
-but you can specify other file by `-c` or `--config` command-line option.
+The `fbupkeep` script can't work without configuration file. By default, `fbupkeep` uses the
+:file:`fbupkeep.cfg` configuration file from current working directory, but you can specify
+other file by `-c` or `--config` command-line option.
 
 .. tip::
 
    `fbupkeep` provides `--create-config` option to create default configuration file for a job.
-   
+
    for example::
-   
+
      fbupkeep --create-config employee.cfg employee
-     
-   will create file :file:`employee.cfg` for job `employee` (i.e. contains section [upkeep_employee])
+
+   will create file :file:`employee.cfg` for job `employee` (i.e. contains section `[upkeep_employee]`)
 
 File structure
 --------------
@@ -48,22 +101,32 @@ span multiple lines, as long as they are indented deeper than the first line of 
 
 .. important::
 
-   FBUpkeep uses named jobs. Each job must have it's own `[upkeep_<jobname>]` section with configuration for task executor 
-   and used tasks.
+   FBUpkeep uses named jobs. Each job must have it's own `[upkeep_<jobname>]` section with
+   configuration for task executor and used tasks.
 
    Individual tasks may use additional sections with their own conventions.
+
+.. tip::
+
+   The convenient way is to use the database name as a job name. For example job name
+   `employee` for `employee` database.
 
 Configuration files may include comments, prefixed by `#` and `;` characters. Comments may
 appear on their own on an otherwise empty line, possibly indented.
 
+.. important::
+
+   The backslash is a special escape character in Python, so it must be doubled if you want
+   to use backslash itself (for example in Windows path specifications).
+
 The DEFAULT section
 -------------------
 
-The `DEFAULT` section is a special section. If configuration options is not found in specific section, its looked up
-in DEFAULT section, and if foud there, the value defined there is used.
+The `DEFAULT` section is a special section. If configuration options is not found in specific
+section, its looked up in DEFAULT section, and if foud there, the value defined there is used.
 
 On execution `fbupkeep` script automatically adds next options to the default section::
- 
+
   job_name = [job_name option value]
   here = [current working directory]
   host = [--host option value, default: localhost]
@@ -94,5 +157,604 @@ For example::
 
 would resolve the `${dir}` to the value of `dir` (`frob` in this case). All reference expansions are done on demand.
 
+.. important::
+
+   Values for some options (typically filenames) support :meth:`datetime.datetime.strftime()`
+   format strings that is interpolated using batch (job) or task execution time. See
+   comments in generated configuration file for details.
+
+Job configuration
+-----------------
+
+The configuration file created using `--create-config` option contains the `[DEFAULT]` and
+`[upkeep_<jobname>]` sections, and logging configuration. However, it could not be used
+without adjustments. If you'll try to use it as is, you'll get next error message::
+
+  Unexpected error: The configuration does not define a value for the required option 'tasks'
+
+That's because created configuration file is just a stub where all options and values are
+commented out. You must update the configuration and provide values for all options that
+are marked as `[REQUIRED]`.
+
+.. important::
+
+   All jobs must define `tasks` option with list of tasks to be executed. Tasks are executed
+   in specified order.
+
+   You must define values for all options for executor and used tasks that are `[REQUIRED]`
+   and their value is `<UNDEFINED>`. Do not forget to uncomment the line with option definition.
+
+.. tip::
+
+   The `--dry-run` option is provided for convenience to check the configuration without
+   actually running defined tasks. If you would also provide `--verbose` option, the
+   `fbupkeep` also prints the configuration options and their values that would be used
+   on execution.
+
+.. note::
+
+   Some configuration options are used by more than one task.
+
+Task executor uses next configuration options:
+
+:tasks: [REQUIRED] Which tasks should be executed for this job. Tasks are executed in specified order.
+:stop_on_error: Abort execution on any error (yes) or skip the failing task and continue running (no). [default: yes]
+:use_batch_time: Time used for filename interpolation, batch start time (yes) or task start time (no). [default: yes]
+
+Sample configuration file
+-------------------------
+
+Next file was generated by::
+
+  fbupkeep --create-config example.cfg example
+
+:file:`example.cfg`::
+
+  ; ===========================
+  ; FBUPKEEP configuration file
+  ; ===========================
+  ;
+  ; A configuration file consists of sections, each led by a [section] header, followed by
+  ; key/value entries separated by = or : string. Section names are case sensitive but keys
+  ; are not. Leading and trailing whitespace is removed from keys and values. Values can be
+  ; omitted, in which case the key/value delimiter may also be left out. Values can also
+  ; span multiple lines, as long as they are indented deeper than the first line of the value.
+  ;
+  ; Configuration files may include comments, prefixed by # and ; characters. Comments may
+  ; appear on their own on an otherwise empty line, possibly indented.
+  ;
+  ; Values can contain ${section:option} format strings which refer to other values.
+  ; If the section: part is omitted, interpolation defaults to the current section (and possibly
+  ; the default values from the special DEFAULT section). Interpolation can span multiple levels.
+  ;
+  ; FBUPKEEP uses named jobs. Each job must have it's own [upkeep_<jobname>] section with
+  ; configuration for task executor and used tasks.
+  ;
+  ; Individual tasks may use additional sections with their own conventions.
+  ;
+  ; Logging is configured in separate sections at the end of this file.
+  ; For details see https://docs.python.org/3/howto/logging.html#configuring-logging and
+  ; https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
+  ;
+
+  [DEFAULT]
+
+  ; ==========================
+  ; Section for default values
+  ; ==========================
+  ;
+  ; On execution FBUPKEEP automatically adds next options to the default section:
+  ; job_name = [job_name option value]
+  ; here = [current working directory]
+  ; host = [--host option value, default: localhost]
+  ; user = [--user option value, default: 'ISC_USER' or 'sysdba']
+  ; password = [--password option value, default: 'ISC_PASSWORD' or 'masterkey']
+  ; output_dir = [--output-dir option value, default: ${here}/${job_name}]
+  ; filename = ${job_name}-%Y%m%d
+  ;
+  ; You can freely use these options for interpolation in your configuration.
+  ;
+  ; If you define any from these options in default section, its value would be ignored
+  ; (replaced by command-line option value).
+
+  [upkeep_example]
+
+  ; ===============================
+  ; Configuration for 'example' job
+  ; ===============================
+
+  ; ---------------------------
+  ; Task executor configuration
+  ; ---------------------------
+  ; tasks
+  ; -----
+  ;
+  ; data type: list
+  ;
+  ; [REQUIRED] Which tasks should be executed for this job.
+  ; Tasks are executed in specified order.
+  ;
+  ; Installed tasks:
+  ;   gbak = Create logical (gbak) database backup.
+  ;   gbak_restore = Restore database from logical (gbak) backup.
+  ;   gstat = Save gstat statistics to file.
+  ;   idx_rebuild = Rebuild all user indices in database.
+  ;   idx_recompute = Recompute statistics of all database indices.
+  ;   remove_old = Remove old files.
+  ;   sweep = Perform database sweep operation.
+  ;
+  ;tasks = <UNDEFINED>
+
+  ; stop_on_error
+  ; -------------
+  ;
+  ; data type: bool
+  ;
+  ; [optional] Abort execution on any error (yes) or skip the failing task and continue running (no).
+  ;
+  ;stop_on_error = yes
+
+  ; use_batch_time
+  ; --------------
+  ;
+  ; data type: bool
+  ;
+  ; [optional] Time used for filename interpolation, batch start time (yes) or task start time (no).
+  ;
+  ;use_batch_time = yes
+
+  ; ------------------------------
+  ; Options used by multiple tasks
+  ; ------------------------------
+
+  ; database
+  ; --------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Database specification (path or alias)
+  ;
+  ; Used by tasks: gbak, gbak_restore, gstat, idx_rebuild, idx_recompute, sweep
+  ;
+  ;database = <UNDEFINED>
+
+  ; host
+  ; ----
+  ;
+  ; data type: str
+  ;
+  ; [optional] Firebird server host
+  ;
+  ; Used by tasks: gbak, gbak_restore, gstat, idx_rebuild, idx_recompute, sweep
+  ;
+  ;host = <UNDEFINED>
+
+  ; user
+  ; ----
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] User name to access Firebird service manager
+  ;
+  ; Used by tasks: gbak, gbak_restore, gstat, idx_rebuild, idx_recompute, sweep
+  ;
+  ;user = SYSDBA
+
+  ; password
+  ; --------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Password to access Firebird service manager
+  ;
+  ; Used by tasks: gbak, gbak_restore, gstat, idx_rebuild, idx_recompute, sweep
+  ;
+  ;password = masterkey
+
+  ; gbak_dir
+  ; --------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Directory for backup files
+  ;
+  ; Used by tasks: gbak, gbak_restore
+  ;
+  ;gbak_dir = <UNDEFINED>, proposed value: ${output_dir}/backup
+
+  ; gbak_filename
+  ; -------------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Backup filename template (supports strftime directives)
+  ;
+  ; Used by tasks: gbak, gbak_restore
+  ;
+  ;gbak_filename = <UNDEFINED>, proposed value: ${filename}.fbk
+
+  ; -----------
+  ; Task 'gbak'
+  ; -----------
+
+  ; gbak_gc
+  ; -------
+  ;
+  ; data type: bool
+  ;
+  ; [optional] Whether backup should perform garbage collection
+  ;
+  ;gbak_gc = yes
+
+  ; gbak_logname
+  ; ------------
+  ;
+  ; data type: str
+  ;
+  ; [optional] Backup log filename template (supports strftime directives)
+  ; If not specified, backup log is not created.
+  ;
+  ;gbak_logname = <UNDEFINED>
+
+  ; -------------------
+  ; Task 'gbak_restore'
+  ; -------------------
+
+  ; gbak_restore_dir
+  ; ----------------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Directory for restored databases
+  ;
+  ;gbak_restore_dir = <UNDEFINED>, proposed value: ${output_dir}/restore
+
+  ; gbak_restore_filename
+  ; ---------------------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Restored database filename template (supports strftime directives)
+  ;
+  ;gbak_restore_filename = <UNDEFINED>, proposed value: ${filename}.fdb
+
+  ; gbak_restore_logname
+  ; --------------------
+  ;
+  ; data type: str
+  ;
+  ; [optional] Restore log filename template (supports strftime directives)
+  ; If not specified, restore log is not created.
+  ;
+  ;gbak_restore_logname = <UNDEFINED>
+
+  ; ------------
+  ; Task 'gstat'
+  ; ------------
+
+  ; gstat_dir
+  ; ---------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Directory for output files
+  ;
+  ;gstat_dir = <UNDEFINED>, proposed value: ${output_dir}/gstat
+
+  ; gstat_filename
+  ; --------------
+  ;
+  ; data type: str
+  ;
+  ; [REQUIRED] Base filename template (supports strftime directives)
+  ;
+  ;gstat_filename = <UNDEFINED>, proposed value: ${filename}.gstat
+
+  ; ------------------
+  ; Task 'idx_rebuild'
+  ; ------------------
+
+  ; This task has no private options (not shared with other tasks).
+
+  ; --------------------
+  ; Task 'idx_recompute'
+  ; --------------------
+
+  ; This task has no private options (not shared with other tasks).
+
+  ; -----------------
+  ; Task 'remove_old'
+  ; -----------------
+
+  ; remove_old_from
+  ; ---------------
+  ;
+  ; data type: list
+  ;
+  ; [REQUIRED] Comma separated list of configuration
+  ; section names. Files are removed according to configuration sections.
+  ; Each section must have next options:
+  ;   path: Directory for processing
+  ;   files_expire_after: Number of days to keep files, older files could be removed
+  ;
+  ; Optional options:
+  ;   pattern: Filename pattern (supports Unix shell-style wildcards), [default: *]
+  ;   recursive: yes/no, [default:no]
+  ;
+  ;remove_old_from = <UNDEFINED>
+
+  ; ------------
+  ; Task 'sweep'
+  ; ------------
+
+  ; This task has no private options (not shared with other tasks).
+
+  ; =====================
+  ; Logging configuration
+  ; =====================
+  ;
+  ; For details see https://docs.python.org/3/howto/logging.html#configuring-logging and
+  ; https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
+
+  [loggers]
+  keys=root
+
+  [handlers]
+  keys=root_handler
+
+  [formatters]
+  keys=root_formatter
+
+  [logger_root]
+  level=NOTSET
+  handlers=root_handler
+
+  [handler_root_handler]
+  ; This sends logging output to file in current working directory
+  class=FileHandler
+  args=('fbupkeep.log', 'a')
+  ;
+  ; This sends logging output to STDERR
+  ;class=StreamHandler
+  ;args=(sys.stderr,)
+  ;
+  formatter=root_formatter
+
+  [formatter_root_formatter]
+  format=%(asctime)s %(levelname)s: %(message)s
+
+Logging
+=======
+
+The `fbupkeep` library uses :mod:`logging` Python library module. By default, the logging
+level is set to `WARNING`, messages are stored in :file:`fbupkeep.log` file in current
+working directory, and have `<timestamp> <level>: <message>` format.
+
+For details how to change logging configuration see
+https://docs.python.org/3/howto/logging.html#configuring-logging and
+https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
+
+Standard tasks
+==============
+
+gbak
+----
+
+Task that creates logical backup of the database.
+
+.. important::
+
+   This tasks never overwrites backup and log files. In case that output filename already
+   exists in output directory, it's renamed to filename.<number> (starting from `1`) that
+   does not exists yet.
+
+Configuration options:
+
+:database:      [REQUIRED] Database specification (path or alias)
+:gbak_dir:      [REQUIRED] Directory for backup files
+:gbak_filename: [REQUIRED] Backup filename template (supports strftime directives)
+:gbak_gc:       Whether backup should perform garbage collection (yes/no)
+:gbak_logname:  Backup log filename template (supports strftime directives).
+                If not specified, the backup log is not created.
+:host:          Firebird server host
+:user:          User name to access Firebird service manager
+:password:      Password to access Firebird service manager
+
+Example::
+
+  [upkeep_mydatabase]
+  ; This configuration stores backup as mydatabase-YYYYMMDD.fbk file in d:\mydatabase\backup
+  ; directory along with backup logs. Because we plan to run sweep before backup, it's not
+  ; necessary to perform garbage collection.
+  ;
+  output_dir = d:\\mydatabase
+  database = C:\\Data\\mydatabase.fdb
+  gbak_dir = ${output_dir}\\backup
+  gbak_filename = ${filename}.fbk
+  gbak_logname = ${filename}.log
+  gbak_gc = no
+
+gbak_restore
+------------
+
+Task that restores database from logical backup. This task is intended to run after `gbak`
+task to verify that database could be successfully restored.
+
+.. important::
+
+   This tasks never overwrites database and log files. In case that output filename already
+   exists in output directory, it's renamed to filename.<number> (starting from `1`) that
+   does not exists yet.
+
+.. note::
+
+   The restored database is not deleted. You can use `remove_old`_ task to delete it.
+
+.. important::
+
+   When you use time-interpolated filenames for backups, make sure that `gbak` and `gbak_restore`
+   tasks use the same timetamp (see `use_batch_time` option) or other means to ensure that
+   backup file used by `gbak_restore` exists.
+
+Configuration options:
+
+:database:              [REQUIRED] Database specification (path or alias)
+:gbak_dir:              [REQUIRED] Directory for backup files
+:gbak_filename:         [REQUIRED] Backup filename template (supports strftime directives)
+:gbak_restore_dir:      [REQUIRED] Directory for restored databases
+:gbak_restore_filename: [REQUIRED] Restored database filename template (supports strftime directives)
+:gbak_restore_logname:  Restore log filename template (supports strftime directives).
+                        If not specified, the restore log is not created.
+:host:                  Firebird server host
+:user:                  User name to access Firebird service manager
+:password:              Password to access Firebird service manager
+
+Example::
+
+  [upkeep_mydatabase]
+  ; This configuration uses backup in mydatabase-YYYYMMDD.fbk file in d:\mydatabase\backup
+  ; directory, and creates database mydatabase-YYYYMMDD.fdb file in d:\mydatabase\restore
+  ; directory along with restore log.
+  ;
+  output_dir = d:\\mydatabase
+  gbak_dir = ${output_dir}\\backup
+  gbak_filename = ${filename}.fbk
+  gbak_restore_dir = ${output_dir}\\restore
+  gbak_restore_filename = ${filename}.fdb
+  gbak_restore_logname = ${filename}.log
+
+sweep
+-----
+
+Task that performs database sweep operation.
+
+Configuration options:
+
+:database: [REQUIRED] Database specification (path or alias)
+:host:     Firebird server host
+:user:     User name to access Firebird service manager
+:password: Password to access Firebird service manager
+
+Example::
+
+  [upkeep_mydatabase]
+  ;
+  database = C:\\Data\\mydatabase.fdb
+
+gstat
+-----
+
+Task that collects gstat database statistics.
+
+.. important::
+
+   This tasks never overwrites output files. In case that output filename already
+   exists in output directory, it's renamed to filename.<number> (starting from `1`) that
+   does not exists yet.
+
+Configuration options:
+
+:database:       [REQUIRED] Database specification (path or alias)
+:gstat_dir:      [REQUIRED] Directory for output files
+:gstat_filename: [REQUIRED] Base filename template (supports strftime directives)
+:host:           Firebird server host
+:user:           User name to access Firebird service manager
+:password:       Password to access Firebird service manager
+
+Example::
+
+  [upkeep_mydatabase]
+  ; This configuration stores database statistics as mydatabase-YYYYMMDD.gstat file in
+  ; d:\mydatabase\gstat directory.
+  ;
+  output_dir = d:\\mydatabase
+  database = C:\\Data\\mydatabase.fdb
+  gstat_dir = ${output_dir}\\gstat
+  gstat_filename = ${filename}.gstat
+
+idx_recompute
+-------------
+
+Task that recomputes statistics for all database indices.
+
+Configuration options:
+
+:database: [REQUIRED] Database specification (path or alias)
+:host:     Firebird server host
+:user:     User name to access Firebird service manager
+:password: Password to access Firebird service manager
+
+.. note:: Verbose mode logs & prints each recomputed index.
+
+Example::
+
+  [upkeep_mydatabase]
+  ;
+  database = C:\\Data\\mydatabase.fdb
+
+idx_rebuild
+-----------
+
+Task that rebuilds all user (i.e. not system) indices.
+
+Configuration options:
+
+:database: [REQUIRED] Database specification (path or alias)
+:host:     Firebird server host
+:user:     User name to access Firebird service manager
+:password: Password to access Firebird service manager
+
+Example::
+
+  [upkeep_mydatabase]
+  ;
+  database = C:\\Data\\mydatabase.fdb
+
+.. note:: Verbose mode logs & prints each rebuilt index.
+
+remove_old
+----------
+
+Task that removes old files.
+
+Configuration options:
+
+:remove_old_from: List of comma-separated section names.
+
+Each listed section must/can define next options:
+
+:path:               [REQUIRED] Directory for processing
+:files_expire_after: [REQUIRED] Number of days to keep files, older files could be removed
+:pattern:            Filename pattern (supports Unix shell-style wildcards)
+:recursive:          Process path recursively (yes/no)
+
+.. note:: Logs & prints each file removed.
+
+Example::
+
+  [upkeep_mydatabase]
+  ; Next configuration removes old backups, and database file restored in this job run.
+  ;
+  remove_old_from = mydatabase_old_backup, mydatabase_old_restore
+  ; Next options are used by gbak and gbak_restore
+  gbak_dir = ${output_dir}\\backup
+  gbak_restore_dir = ${output_dir}\\restore
+  gbak_restore_filename = ${filename}.fdb
+
+  [mydatabase_old_backup]
+  ; Remove backups (but keep other files in backup directory) older than 14 days
+  path = ${upkeep_mydatabase:gbak_dir}
+  files_expire_after = 14
+  pattern = *.fbk
+  recursive = no
+
+  [mydatabase_old_restore]
+  ; Remove database previously restored by gbak_restore (if any)
+  path = ${upkeep_mydatabase:gbak_restore_dir}
+  ; Make sure that we will pass the expiration test
+  files_expire_after = -2
+  ; We want to remove exactly this database file restored previously by gbak_restore
+  pattern = ${upkeep_mydatabase:gbak_restore_filename}
+  recursive = no
 
 .. _Firebird: http://www.firebirdsql.org

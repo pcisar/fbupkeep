@@ -25,8 +25,10 @@ Exceptions
 ==========
 
 .. autoexception:: Error
+   :show-inheritance:
 
 .. autoexception:: StopError
+   :show-inheritance:
 
 Functions
 =========
@@ -40,26 +42,36 @@ ConfigOption
 ------------
 
 .. autoclass:: ConfigOption
+   :members:
+   :show-inheritance:
 
 TaskConfig
 ----------
 
 .. autoclass:: TaskConfig
+   :members:
+   :show-inheritance:
 
 LoggedObject
 ------------
 
 .. autoclass:: LoggedObject
+   :members:
+   :show-inheritance:
 
 Task
 ----
 
 .. autoclass:: Task
+   :members:
+   :show-inheritance:
 
 TaskExecutor
 ------------
 
 .. autoclass:: TaskExecutor
+   :members:
+   :show-inheritance:
 
 ==============
 fbupkeep.tasks
@@ -74,36 +86,50 @@ TaskGstat
 ---------
 
 .. autoclass:: TaskGstat
+   :members:
+   :show-inheritance:
 
 TaskGbak
 --------
 
 .. autoclass:: TaskGbak
+   :members:
+   :show-inheritance:
 
 TaskGbakRestore
 ---------------
 
 .. autoclass:: TaskGbakRestore
+   :members:
+   :show-inheritance:
 
 TaskSweep
 ---------
 
 .. autoclass:: TaskSweep
+   :members:
+   :show-inheritance:
 
 TaskIndexRecompute
 ------------------
 
 .. autoclass:: TaskIndexRecompute
+   :members:
+   :show-inheritance:
 
 TaskIndexRebuild
 ----------------
 
 .. autoclass:: TaskIndexRebuild
+   :members:
+   :show-inheritance:
 
 TaskRemoveOld
 -------------
 
 .. autoclass:: TaskRemoveOld
+   :members:
+   :show-inheritance:
 
 ===============
 fbupkeep.runner

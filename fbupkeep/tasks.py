@@ -274,7 +274,7 @@ class TaskSweep(Task):
             self.logger.debug("Service closed")
 
 class TaskIndexRecompute(Task):
-    """Task that recomputes database indices.
+    """Task that recomputes statistics for all database indices.
 """
     def __init__(self, executor):
         super().__init__(executor)
@@ -318,7 +318,7 @@ class TaskIndexRecompute(Task):
             self.logger.debug("Database connection closed")
 
 class TaskIndexRebuild(Task):
-    """Task that recomputes database indices.
+    """Task that rebuilds all user (i.e. not system) indices.
 """
     def __init__(self, executor):
         super().__init__(executor)
@@ -409,7 +409,7 @@ Optional options:
 """
         for dir_config in self.dir_configs:
             for dirpath, _, filenames in os.walk(dir_config.path):
-                for filename in fnmatch.filter(filenames, dir_config.pattern):
+                for filename in fnmatch.filter(filenames, self.timestamp.strftime(dir_config.pattern)):
                     try:
                         filespec = os.path.join(dirpath, filename)
                         age = self.timestamp - datetime.datetime.fromtimestamp(os.path.getmtime(filespec))
