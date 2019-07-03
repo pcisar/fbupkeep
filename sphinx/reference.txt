@@ -1,0 +1,114 @@
+
+##################
+FBUPKEEP Reference
+##################
+
+=====================
+Main module namespace
+=====================
+
+.. module:: fbupkeep
+   :synopsis: Extensible task executor engine + utility to run maintenance tasks for Firebird servers and databases
+
+Constants
+=========
+
+:__version__: Current module version, string.
+
+=============
+fbupkeep.base
+=============
+
+.. automodule:: fbupkeep.base
+
+Exceptions
+==========
+
+.. autoexception:: Error
+
+.. autoexception:: StopError
+
+Functions
+=========
+
+.. autofunction:: has_option
+
+Classes
+=======
+
+ConfigOption
+------------
+
+.. autoclass:: ConfigOption
+
+TaskConfig
+----------
+
+.. autoclass:: TaskConfig
+
+LoggedObject
+------------
+
+.. autoclass:: LoggedObject
+
+Task
+----
+
+.. autoclass:: Task
+
+TaskExecutor
+------------
+
+.. autoclass:: TaskExecutor
+
+==============
+fbupkeep.tasks
+==============
+
+.. automodule:: fbupkeep.tasks
+
+Classes
+=======
+
+TaskGstat
+---------
+
+.. autoclass:: TaskGstat
+
+TaskGbak
+--------
+
+.. autoclass:: TaskGbak
+
+TaskGbakRestore
+---------------
+
+.. autoclass:: TaskGbakRestore
+
+TaskSweep
+---------
+
+.. autoclass:: TaskSweep
+
+TaskIndexRecompute
+------------------
+
+.. autoclass:: TaskIndexRecompute
+
+TaskIndexRebuild
+----------------
+
+.. autoclass:: TaskIndexRebuild
+
+TaskRemoveOld
+-------------
+
+.. autoclass:: TaskRemoveOld
+
+===============
+fbupkeep.runner
+===============
+
+.. automodule:: fbupkeep.runner
+
+.. autofunction:: main

@@ -34,16 +34,47 @@
 
 """Firebird Upkeep utility
 
-- Create gbak backup via service. Filename in specified format.
-- Optional testing restore.
-- Removal of backup files older than specified period (in days).
-- Optional recompute of index statistics.
-- Optional rebuild of user indices.
-- Optional sweep (or automatic if OAT-OIT moves over specified threshold)
-- Optional gathering of database statistics.
-- Tasks for execution defined via configuration file.
-- Use of logging
-- Report about outcome of script execution sent via e-mail.
+usage::
+
+  fbupkeep [-h] [--version] [--create-config FILENAME] 
+                [--host HOST] [-u USER] [-p PASSWORD] 
+                [-c CONFIG] [-o DIR] [--dry-run] 
+                [-v] [-q] [-l {critical,fatal,error,warn,warning,info,debug,notset}]
+                [--log-only]
+                job_name
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --create-config FILENAME
+                        Create configuration file for job and exit (default:
+                        None)
+
+positional arguments:
+  job_name              Job name
+
+Firebird server/database connection arguments:
+  --host HOST           Server host (default: localhost)
+  -u USER, --user USER  User name (default: sysdba)
+  -p PASSWORD, --password PASSWORD
+                        User password (default: masterkey)
+
+run arguments:
+  -c CONFIG, --config CONFIG
+                        Configuration file (default: fbupkeep.cfg)
+  -o DIR, --output-dir DIR
+                        Force directory for log files and other output
+                        (default: ${here}/${job_name})
+  --dry-run             Prepare execution but do not run tasks (default:
+                        False)
+
+output arguments:
+  -v, --verbose         Verbose output (default: False)
+  -q, --quiet           No screen output (default: False)
+  -l {critical,fatal,error,warn,warning,info,debug,notset}, --log-level {critical,fatal,error,warn,warning,info,debug,notset}
+                        Logging level (default: WARNING)
+  --log-only            Suppress all screen output including error messages
+                        (default: False)
 """
 
 import sys

@@ -1,0 +1,98 @@
+
+===========
+Usage Guide
+===========
+
+.. currentModule:: fbupkeep
+
+Basics
+======
+
+FBUpkeep is a Python library that provides a task executor engine and a command-line tool to execute tasks. 
+Its primary purpose is to run maintenance tasks for `Firebird`_ ® servers and databases, but could be easily 
+extended to run other tasks of various type.
+
+Tasks are simple Python classes inherited from :class:`~base.Task` and registered into `fbupkeep_tasks` `entry point 
+group <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`_ (in `setup.py`).
+Tasks are parameterized by the configuration file (using standard :mod:`configparser` Python library module).
+
+Tasks are managed and executed by :class:`~base.TaskExecutor` which is parametrized using the configuration file and 
+options that are typically provided as :class:`argparse.Namespace`.
+
+Module :mod:`fbupkeep.runner` provides `fbupkeep` command-line utility to work with task executor. 
+
+Configuration file
+==================
+
+By default, `fbupkeep` uses the :file:`fbupkeep.cfg` configuration file from current working directory, 
+but you can specify other file by `-c` or `--config` command-line option.
+
+.. tip::
+
+   `fbupkeep` provides `--create-config` option to create default configuration file for a job.
+   
+   for example::
+   
+     fbupkeep --create-config employee.cfg employee
+     
+   will create file :file:`employee.cfg` for job `employee` (i.e. contains section [upkeep_employee])
+
+File structure
+--------------
+
+A configuration file consists of sections, each led by a `[section]` header, followed by
+key/value entries separated by `=` or `:` string. Section names are case sensitive but keys
+are not. Leading and trailing whitespace is removed from keys and values. Values can be
+omitted, in which case the key/value delimiter may also be left out. Values can also
+span multiple lines, as long as they are indented deeper than the first line of the value.
+
+.. important::
+
+   FBUpkeep uses named jobs. Each job must have it's own `[upkeep_<jobname>]` section with configuration for task executor 
+   and used tasks.
+
+   Individual tasks may use additional sections with their own conventions.
+
+Configuration files may include comments, prefixed by `#` and `;` characters. Comments may
+appear on their own on an otherwise empty line, possibly indented.
+
+The DEFAULT section
+-------------------
+
+The `DEFAULT` section is a special section. If configuration options is not found in specific section, its looked up
+in DEFAULT section, and if foud there, the value defined there is used.
+
+On execution `fbupkeep` script automatically adds next options to the default section::
+ 
+  job_name = [job_name option value]
+  here = [current working directory]
+  host = [--host option value, default: localhost]
+  user = [--user option value, default: 'ISC_USER' env. variable or 'sysdba']
+  password = [--password option value, default: 'ISC_PASSWORD' env. variable or 'masterkey']
+  output_dir = [--output-dir option value, default: ${here}/${job_name}]
+  filename = ${job_name}-%Y%m%d
+
+You can freely use these options for interpolation in your configuration.
+
+If you define any from these options in default section, its value would be ignored
+(replaced by command-line option value).
+
+Interpolation
+-------------
+
+Values can contain `${section:option}` format strings which refer to other values.
+If the `section:` part is omitted, interpolation defaults to the current section (and possibly
+the default values from the special `DEFAULT` section). Interpolation can span multiple levels.
+
+For example::
+
+   [My Section]
+   foodir: ${dir}/whatever
+   dir=frob
+   long: this value continues
+      in the next line
+
+would resolve the `${dir}` to the value of `dir` (`frob` in this case). All reference expansions are done on demand.
+
+
+.. _Firebird: http://www.firebirdsql.org

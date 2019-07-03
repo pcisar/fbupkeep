@@ -332,7 +332,7 @@ Validates the `config`.
 """
 
 class TaskExecutor(LoggedObject):
-    """Base task executor.
+    """Task executor.
 
 Attributes:
     :config:  TaskConfig instance.
