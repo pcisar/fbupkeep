@@ -62,6 +62,7 @@ setup(
     namespace_packages=[],
     project_urls={
         'Source': 'https://github.com/pcisar/fbupkeep',
+        'Documentation': 'https://fbupkeep.rtfd.io/',
         },
     entry_points={'console_scripts': ['fbupkeep = fbupkeep.runner:main',
                                      ],
